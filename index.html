@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f4f6f8" />
+    <meta name="description" content="Buat dan unduh proforma invoice langsung di browser." />
+    <title>Proforma Studio — Invoice Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script defer src="script.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <a class="brand" href="#" aria-label="Proforma Studio">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="brand-copy"><strong>proforma<span>.</span></strong><small>INVOICE STUDIO</small></span>
+        </a>
+        <div class="header-note"><span class="local-dot"></span> Diproses lokal di browser</div>
+      </header>
+
+      <main class="workspace">
+        <aside class="editor-panel" aria-label="Form invoice">
+          <div class="editor-heading">
+            <div>
+              <p class="eyebrow">RUANG KERJA</p>
+              <h1>Buat invoice</h1>
+              <p class="heading-description">Lengkapi detailnya. Pratinjau akan diperbarui otomatis.</p>
+            </div>
+            <span class="step-badge">01 <i>/</i> 01</span>
+          </div>
+
+          <form id="invoice-form" autocomplete="off">
+            <section class="form-section">
+              <div class="section-title"><span class="section-icon icon-doc" aria-hidden="true"></span><h2>Informasi invoice</h2></div>
+              <div class="field-grid two-col">
+                <label class="field span-2"><span>Nama perusahaan / brand</span><input id="company" type="text" value="NUSA TEXTILE" placeholder="Nama perusahaan" /></label>
+                <label class="field"><span>Nomor invoice</span><input id="invoice-number" type="text" value="PI-2026-001" placeholder="Contoh: PI-001" /></label>
+                <label class="field"><span>Tanggal invoice</span><input id="invoice-date" type="date" /></label>
+                <label class="field"><span>Sales PIC</span><input id="sales-pic" type="text" value="Ari" placeholder="Nama sales" /></label>
+                <label class="field"><span>Nama pembeli / Kepada YTH</span><input id="buyer" type="text" value="Bapak Ari" placeholder="Nama pembeli" /></label>
+              </div>
+            </section>
+
+            <section class="form-section items-section">
+              <div class="section-title section-title-between">
+                <div class="section-title"><span class="section-icon icon-grid" aria-hidden="true"></span><h2>Detail barang</h2></div>
+                <span id="item-count" class="count-chip">01 BARIS</span>
+              </div>
+              <p class="section-hint">Pisahkan angka roll dengan koma. Qty total akan dijumlahkan otomatis.</p>
+              <div id="item-list" class="item-list"></div>
+              <button id="add-item" class="add-item-button" type="button"><span aria-hidden="true">＋</span> Tambah barang</button>
+            </section>
+
+            <section class="form-section">
+              <div class="section-title"><span class="section-icon icon-calc" aria-hidden="true"></span><h2>Ringkasan & pembulatan</h2></div>
+              <div class="field-grid two-col">
+                <label class="field span-2"><span>Aturan pembulatan</span>
+                  <select id="rounding-mode">
+                    <option value="none">Tanpa pembulatan</option>
+                    <option value="100">Ke Rp 100 terdekat</option>
+                    <option value="500">Ke Rp 500 terdekat</option>
+                    <option value="1000" selected>Ke Rp 1.000 terdekat</option>
+                    <option value="custom">Penyesuaian manual</option>
+                  </select>
+                </label>
+                <label id="rounding-custom-field" class="field span-2 is-hidden"><span>Penyesuaian (Rp, boleh minus)</span><input id="rounding-custom" type="number" step="1" value="0" /></label>
+              </div>
+              <p class="section-hint">Pembulatan diterapkan pada subtotal setelah diskon.</p>
+            </section>
+
+            <section class="form-section">
+              <div class="section-title"><span class="section-icon icon-bank" aria-hidden="true"></span><h2>Informasi pembayaran</h2></div>
+              <div class="field-grid two-col">
+                <label class="field"><span>Nama bank</span><input id="bank-name" type="text" value="Bank Central Asia (BCA)" placeholder="Nama bank" /></label>
+                <label class="field"><span>Nomor rekening</span><input id="account-number" type="text" value="123 456 7890" placeholder="Nomor rekening" /></label>
+                <label class="field span-2"><span>Nama pemilik rekening</span><input id="account-holder" type="text" value="PT Nusa Textile Indonesia" placeholder="Nama pemilik rekening" /></label>
+                <label class="field span-2"><span>Keterangan pembayaran</span><textarea id="payment-note" rows="2" placeholder="Contoh: Mohon cantumkan nomor invoice saat transfer.">Mohon cantumkan nomor invoice pada berita transfer.</textarea></label>
+                <label class="field span-2"><span>Nama penerima / tanda terima</span><input id="receipt-name" type="text" placeholder="Diisi saat barang diterima" /></label>
+              </div>
+            </section>
+
+            <div class="editor-footer">
+              <span><span class="secure-icon" aria-hidden="true">⌑</span> Data tidak dikirim atau disimpan.</span>
+              <button id="reset-form" class="reset-button" type="button">Reset form</button>
+            </div>
+          </form>
+        </aside>
+
+        <section class="preview-panel" aria-label="Pratinjau invoice">
+          <div class="preview-toolbar">
+            <div class="preview-title"><span class="preview-live-dot"></span><div><h2>Pratinjau langsung</h2><p>Semua perubahan tampil di sini</p></div></div>
+            <div class="zoom-controls" aria-label="Ukuran pratinjau">
+              <button id="zoom-out" type="button" aria-label="Perkecil pratinjau">−</button><span id="zoom-percent">100%</span><button id="zoom-in" type="button" aria-label="Perbesar pratinjau">＋</button><button id="zoom-fit" type="button">Sesuaikan</button>
+            </div>
+            <div class="export-actions">
+              <button id="print-button" class="button button-quiet" type="button"><span class="button-icon" aria-hidden="true">▤</span><span>Cetak</span></button>
+              <button id="png-button" class="button button-quiet" type="button"><span class="button-icon image-icon" aria-hidden="true">▧</span><span>Unduh PNG</span></button>
+              <button id="pdf-button" class="button button-primary" type="button"><span class="button-icon" aria-hidden="true">↓</span><span>Unduh PDF</span></button>
+            </div>
+          </div>
+          <div class="paper-viewport">
+            <div id="paper-frame" class="paper-frame">
+              <article id="invoice-paper" class="invoice-paper" aria-label="Dokumen proforma invoice">
+                <header class="invoice-header">
+                  <div class="invoice-brand-block">
+                    <span class="invoice-overline">PROFORMA / <span>INVOICE</span></span>
+                    <h2 id="preview-company">NUSA TEXTILE</h2>
+                    <p class="company-caption">TEXTILE &amp; FABRIC SUPPLIER</p>
+                  </div>
+                  <div class="invoice-heading-block">
+                    <p class="invoice-kicker">DOKUMEN TAGIHAN</p>
+                    <h1>PROFORMA<br />INVOICE</h1>
+                    <div class="invoice-number-lockup"><span>NO. INVOICE</span><strong id="preview-number">PI-2026-001</strong></div>
+                  </div>
+                </header>
+
+                <div class="invoice-rule"></div>
+                <section class="invoice-meta" aria-label="Informasi invoice">
+                  <div class="meta-block buyer-meta"><span class="meta-label">DITAGIHKAN KEPADA</span><strong id="preview-buyer">Bapak Ari</strong><span class="meta-sub">Pelanggan</span></div>
+                  <div class="meta-block"><span class="meta-label">TANGGAL INVOICE</span><strong id="preview-date">—</strong></div>
+                  <div class="meta-block"><span class="meta-label">SALES PIC</span><strong id="preview-sales">Ari</strong></div>
+                  <div class="meta-block meta-status"><span class="status-mark" aria-hidden="true">✓</span><span><span class="meta-label">STATUS</span><strong>PROFORMA</strong></span></div>
+                </section>
+
+                <section class="invoice-items-section">
+                  <div class="invoice-section-heading"><div><span class="section-index">01</span><h3>Rincian barang</h3></div><span class="invoice-currency">MATA UANG &nbsp; IDR / RUPIAH</span></div>
+                  <table class="invoice-table">
+                    <colgroup><col class="col-no" /><col class="col-description" /><col class="col-color" /><col class="col-roll" /><col class="col-pcs" /><col class="col-qty" /><col class="col-price" /><col class="col-discount" /><col class="col-total" /></colgroup>
+                    <thead><tr><th>No.</th><th>Deskripsi barang</th><th>Warna</th><th>Qty / roll</th><th>Pcs</th><th>Qty total</th><th>Harga</th><th>Diskon</th><th>Total</th></tr></thead>
+                    <tbody id="preview-items"></tbody>
+                  </table>
+                </section>
+
+                <section class="invoice-lower-grid">
+                  <div class="payment-column">
+                    <div class="invoice-section-heading lower-heading"><div><span class="section-index">02</span><h3>Informasi pembayaran</h3></div></div>
+                    <div class="payment-card">
+                      <div class="payment-bank-mark" aria-hidden="true">↗</div>
+                      <div class="payment-detail"><span class="meta-label">TRANSFER BANK</span><strong id="preview-bank">Bank Central Asia (BCA)</strong><div class="account-line"><span id="preview-account">123 456 7890</span><span class="account-separator"></span><span id="preview-holder">PT Nusa Textile Indonesia</span></div>
+                        <p id="preview-payment-note">Mohon cantumkan nomor invoice pada berita transfer.</p>
+                      </div>
+                    </div>
+                    <div class="receipt-box"><span class="meta-label">TANDA TERIMA</span><strong id="preview-receipt-name">Nama / tanda tangan penerima</strong><div class="receipt-sign-line"><span>Tanggal</span><i></i></div><div class="receipt-sign-line"><span>Tanda tangan</span><i></i></div></div>
+                  </div>
+                  <div class="totals-column">
+                    <div class="invoice-section-heading lower-heading"><div><span class="section-index">03</span><h3>Ringkasan tagihan</h3></div></div>
+                    <div class="totals-card">
+                      <div class="total-line"><span>Subtotal</span><strong id="preview-subtotal">Rp 0</strong></div>
+                      <div class="total-line"><span>Total diskon</span><strong id="preview-discount">− Rp 0</strong></div>
+                      <div class="total-line"><span>Pembulatan</span><strong id="preview-rounding">Rp 0</strong></div>
+                      <div class="grand-total"><span><small>TOTAL YANG HARUS DIBAYAR</small><strong>Grand total</strong></span><strong id="preview-grand-total">Rp 0</strong></div>
+                      <div class="totals-note">Pastikan jumlah transfer sesuai dengan grand total.</div>
+                    </div>
+                  </div>
+                </section>
+                <footer class="invoice-footer"><span>Proforma ini bukan bukti pembayaran.</span><span class="footer-brand">DIBUAT DENGAN <strong>PROFORMA<span>.</span></strong></span></footer>
+              </article>
+            </div>
+          </div>
+          <div id="toast" class="toast" role="status" aria-live="polite"></div>
+        </section>
+      </main>
+    </div>
+    <template id="item-template">
+      <article class="item-card">
+        <div class="item-card-header"><span class="item-number"></span><button class="remove-item" type="button" aria-label="Hapus barang">Hapus <span aria-hidden="true">×</span></button></div>
+        <label class="field"><span>Deskripsi barang</span><input data-field="description" type="text" placeholder="Contoh: HARUKA OSLO COOPER SALUR 56" /></label>
+        <div class="field-grid item-fields">
+          <label class="field"><span>Warna</span><input data-field="color" type="text" placeholder="Navy" /></label>
+          <label class="field"><span>Qty / roll</span><input data-field="rolls" type="text" inputmode="decimal" placeholder="104, 100" /></label>
+          <label class="field"><span>Pcs</span><input data-field="pcs" type="number" min="0" step="1" value="1" /></label>
+          <label class="field"><span>Harga / unit (Rp)</span><input data-field="price" type="text" inputmode="decimal" placeholder="27.250" value="27250" /></label>
+          <label class="field"><span>Diskon / unit (Rp)</span><input data-field="discount" type="text" inputmode="decimal" placeholder="750" value="750" /></label>
+        </div>
+        <div class="item-card-summary"><span>Qty total <strong data-qty-total>204</strong></span><span>Total bersih <strong data-line-total>Rp 5.406.000</strong></span></div>
+      </article>
+    </template>
+  </body>
+</html>
